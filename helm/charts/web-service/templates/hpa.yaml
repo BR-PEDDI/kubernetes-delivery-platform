@@ -1,0 +1,32 @@
+{{- if .Values.hpa.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "web-service.fullname" . }}
+  labels:
+    {{- include "web-service.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "web-service.fullname" . }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+    {{- if .Values.hpa.metrics.cpu }}
+    - type: Resource
+      resource:
+        name: cpu
+        {{- toYaml .Values.hpa.metrics.cpu | nindent 8 }}
+    {{- end }}
+    {{- if .Values.hpa.metrics.memory }}
+    - type: Resource
+      resource:
+        name: memory
+        {{- toYaml .Values.hpa.metrics.memory | nindent 8 }}
+    {{- end }}
+  {{- if .Values.hpa.behavior }}
+  behavior:
+    {{- toYaml .Values.hpa.behavior | nindent 4 }}
+  {{- end }}
+{{- end -}}

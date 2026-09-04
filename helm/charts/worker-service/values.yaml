@@ -1,0 +1,100 @@
+## Default values for worker-service Helm chart
+## Background workers — no Service, Ingress, or ServiceMonitor
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/br-peddi/worker-service
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+terminationGracePeriodSeconds: 60
+
+concurrency:
+  envVar: WORKER_CONCURRENCY
+  value: "4"
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  liveness:
+    enabled: true
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - "pgrep -f worker || exit 1"
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    failureThreshold: 3
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    cpu:
+      target:
+        type: Utilization
+        averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+
+configMap:
+  enabled: true
+  data:
+    LOG_LEVEL: info
+    QUEUE_URL: amqp://rabbitmq:5672
+    MAX_RETRIES: "5"
+
+env: []
+  # - name: DATABASE_URL
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: db-secrets
+  #       key: url
+
+envFrom: []
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+priorityClassName: ""
+revisionHistoryLimit: 10

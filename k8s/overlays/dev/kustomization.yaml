@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: dev-
+
+namespace: dev
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Deployment
+      name: web-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 100m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 128Mi
+
+configMapGenerator:
+  - name: web-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - APP_ENV=development
+
+images:
+  - name: ghcr.io/br-peddi/web-service
+    newTag: dev-latest
+  - name: ghcr.io/br-peddi/worker-service
+    newTag: dev-latest

@@ -1,0 +1,25 @@
+apiVersion: v2
+name: web-service
+description: Production-grade Helm chart for stateless HTTP web services on Kubernetes, with Ingress, HPA, probes, and Prometheus ServiceMonitor support.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - web
+  - service
+  - http
+  - kubernetes
+  - helm
+  - microservice
+  - ingress
+home: https://github.com/org/kubernetes-delivery-platform
+sources:
+  - https://github.com/org/kubernetes-delivery-platform
+maintainers:
+  - name: Balaji Peddi
+    email: balaji@example.com
+    url: https://github.com/balajipeddi
+icon: https://kubernetes.io/images/favicon.png
+annotations:
+  category: Application
+  licenses: MIT

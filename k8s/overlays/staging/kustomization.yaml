@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: staging-
+
+namespace: staging
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Deployment
+      name: web-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 200m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: web-service
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 6
+
+configMapGenerator:
+  - name: web-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=info
+      - APP_ENV=staging
+
+images:
+  - name: ghcr.io/br-peddi/web-service
+    newTag: staging-latest
+  - name: ghcr.io/br-peddi/worker-service
+    newTag: staging-latest

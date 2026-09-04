@@ -1,0 +1,14 @@
+apiVersion: v2
+name: worker-service
+description: Helm chart for background worker services on Kubernetes (no HTTP endpoints)
+type: application
+version: 2.0.0
+appVersion: "1.0.0"
+keywords:
+  - worker
+  - background-jobs
+  - queue-processor
+  - kubernetes
+maintainers:
+  - name: Balaji Peddi
+    url: https://github.com/BR-PEDDI

@@ -1,0 +1,91 @@
+name: Lint and Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: yamllint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_file: |
+            extends: default
+            rules:
+              line-length:
+                max: 200
+              document-start:
+                present: false
+              truthy:
+                level: error
+
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart:
+          - helm/charts/web-service
+          - helm/charts/worker-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint (strict)
+        run: helm lint --strict ${{ matrix.chart }}
+      - name: Helm lint with production values
+        run: |
+          helm lint ${{ matrix.chart }} \
+            --set ingress.enabled=true \
+            --set ingress.hosts[0].host=api.example.com \
+            --set ingress.hosts[0].paths[0].path=/ \
+            --set ingress.hosts[0].paths[0].pathType=Prefix \
+            --set ingress.tls[0].secretName=api-tls \
+            --set ingress.tls[0].hosts[0]=api.example.com \
+            --set hpa.enabled=true \
+            --set serviceMonitor.enabled=true
+
+  kubeval:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart:
+          - helm/charts/web-service
+          - helm/charts/worker-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Template and validate
+        run: |
+          helm template test ${{ matrix.chart }} > rendered.yaml
+          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64 -o kubeconform
+          chmod +x kubeconform
+          ./kubeconform -strict -ignore-missing-schemas rendered.yaml
+
+  kustomize:
+    name: Validate Kustomize Overlays
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        overlay:
+          - dev
+          - staging
+          - prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+      - name: Build overlay
+        run: |
+          cd k8s/overlays/${{ matrix.overlay }}
+          kustomize build . > /dev/null && echo "Overlay ${{ matrix.overlay }} builds successfully"

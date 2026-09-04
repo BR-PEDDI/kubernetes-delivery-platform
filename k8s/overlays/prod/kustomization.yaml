@@ -1,0 +1,61 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: prod-
+
+namespace: prod
+
+resources:
+  - ../../base
+  - poddisruptionbudget.yaml
+
+patches:
+  - target:
+      kind: Deployment
+      name: web-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 5
+      - op: replace
+        path: /spec/strategy/rollingUpdate/maxUnavailable
+        value: 0
+      - op: replace
+        path: /spec/revisionHistoryLimit
+        value: 20
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 1000m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 1Gi
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: web-service
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 5
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+
+configMapGenerator:
+  - name: web-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - APP_ENV=production
+
+images:
+  - name: ghcr.io/br-peddi/web-service
+    newTag: v1.0.0@sha256:a1b2c3d4e5f6
+  - name: ghcr.io/br-peddi/worker-service
+    newTag: v1.0.0@sha256:a1b2c3d4e5f6
